@@ -4,6 +4,7 @@
 const BACKEND_URL = "https://the-art-of-living-amber.vercel.app/api/tmdb";
 const IMAGE_BASE = "https://image.tmdb.org/t/p/";
 const FAVORITES_KEY = "artOfLivingFavorites";
+const SURPRISE_HISTORY_KEY = "artOfLivingSurpriseHistory";
 let currentPage = 1;
 let currentQuery = "";
 let currentResults = [];
@@ -243,10 +244,61 @@ $("#dialogContent").addEventListener("click", event => {
 });
 $("#closeDialog").addEventListener("click", () => $("#movieDialog").close());
 
-function surpriseMe() {
-  if (!currentResults.length) { setMessage("Connect to TMDB and load films first, then try Surprise Me.", "error"); return; }
-  const movie = currentResults[Math.floor(Math.random() * currentResults.length)];
-  showDetails(movie);
+async function surpriseMe() {
+  const button = $("#surpriseTop");
+  button.disabled = true;
+  const originalLabel = button.textContent;
+  button.textContent = "FINDING A SURPRISE…";
+  setMessage("Searching the wider film archive for a little surprise…");
+
+  try {
+    const history = JSON.parse(localStorage.getItem(SURPRISE_HISTORY_KEY) || "[]");
+    let candidates = [];
+
+    // Search TMDB's much larger Discover catalogue, not only the films
+    // currently visible in the page. Mix all genres with individual genres.
+    for (let attempt = 0; attempt < 8 && !candidates.length; attempt++) {
+      const useGenre = genres.length > 0 && Math.random() < 0.65;
+      const selectedGenre = useGenre
+        ? genres[Math.floor(Math.random() * genres.length)]
+        : null;
+      const params = {
+        language: "en-US",
+        include_adult: false,
+        sort_by: Math.random() < 0.5 ? "popularity.desc" : "vote_average.desc",
+        "vote_count.gte": 30,
+        page: Math.floor(Math.random() * 500) + 1
+      };
+      if (selectedGenre) params.with_genres = selectedGenre.id;
+
+      const data = await tmdb("/discover/movie", params);
+      candidates = (data.results || []).filter(movie =>
+        movie.poster_path && !history.includes(movie.id)
+      );
+    }
+
+    // Fallback in the unlikely event a random Discover page is empty.
+    if (!candidates.length) {
+      const page = Math.floor(Math.random() * 500) + 1;
+      const data = await tmdb("/movie/popular", { page, language: "en-US", region: "US" });
+      candidates = (data.results || []).filter(movie => !history.includes(movie.id));
+    }
+
+    if (!candidates.length) {
+      throw new Error("We couldn't find a fresh surprise right now. Please try again.");
+    }
+
+    const movie = candidates[Math.floor(Math.random() * candidates.length)];
+    const updatedHistory = [movie.id, ...history.filter(id => id !== movie.id)].slice(0, 20);
+    localStorage.setItem(SURPRISE_HISTORY_KEY, JSON.stringify(updatedHistory));
+    showDetails(movie);
+    setMessage("A fresh film from the wider TMDB archive — enjoy the surprise!");
+  } catch (error) {
+    setMessage(error.message || "The archive could not find a surprise. Please try again.", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
 }
 $("#surpriseTop").addEventListener("click", surpriseMe);
 $("#movieGrid").addEventListener("dblclick", event => {
@@ -262,4 +314,3 @@ window.addEventListener("load", () => {
   setTimeout(() => $("#curtain").classList.add("open"), 350);
   setTimeout(() => $("#curtain").remove(), 2100);
 });
-
