@@ -71,3 +71,11 @@ Vercel Functions:
 https://vercel.com/docs/functions
 Vercel Environment Variables:
 https://vercel.com/docs/environment-variables
+
+
+DEPLOYMENT FIX (November 2026)
+- The frontend API URL is configured for: https://the-art-of-living-amber.vercel.app/api/tmdb
+- In Vercel Environment Variables, set FRONTEND_ORIGIN to:
+  https://the-art-of-living-amber.vercel.app,https://salwaalahdal.github.io
+- Keep TMDB_READ_ACCESS_TOKEN as a secret Environment Variable. Do not put it in GitHub.
+- Push the updated app.js and api/tmdb.js to GitHub, then redeploy the Vercel project.
