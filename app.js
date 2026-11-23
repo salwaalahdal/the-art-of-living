@@ -1,10 +1,9 @@
 /* The Art of Living — Cinema Archive
    CCSW321: AJAX, DOM creation/removal, forms, events and error handling. */
-const API_BASE = "https://api.themoviedb.org/3";
+// After deploying the /api/tmdb function, paste its public URL here.
+const BACKEND_URL = "https://YOUR-VERCEL-PROJECT.vercel.app/api/tmdb";
 const IMAGE_BASE = "https://image.tmdb.org/t/p/";
-const TOKEN_KEY = "artOfLivingTmdbToken";
 const FAVORITES_KEY = "artOfLivingFavorites";
-let accessToken = localStorage.getItem(TOKEN_KEY) || "";
 let currentPage = 1;
 let currentQuery = "";
 let currentResults = [];
@@ -14,7 +13,6 @@ let favorites = JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]");
 const $ = (selector) => document.querySelector(selector);
 const grid = $("#movieGrid");
 const message = $("#message");
-const tokenInput = $("#apiToken");
 
 function setMessage(text, type = "") {
   message.textContent = text;
@@ -27,18 +25,27 @@ function poster(path, size = "w500") {
   return path ? `${IMAGE_BASE}${size}${path}` : "";
 }
 async function tmdb(path, params = {}) {
-  if (!accessToken) throw new Error("Add your TMDB Read Access Token in Connection Settings first.");
-  const url = new URL(`${API_BASE}${path}`);
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== "" && value !== null && value !== undefined) url.searchParams.set(key, value);
-  });
-  const response = await fetch(url, {headers: {Authorization: `Bearer ${accessToken}`, Accept: "application/json"}});
-  if (!response.ok) {
-    if (response.status === 401) throw new Error("TMDB rejected the token. Check that you pasted the API Read Access Token, not your account password.");
-    if (response.status === 429) throw new Error("Too many requests. Please wait a moment and try again.");
-    throw new Error(`TMDB request failed (${response.status}). Please try again.`);
+  if (BACKEND_URL.includes("YOUR-VERCEL-PROJECT")) {
+    throw new Error("The secure movie connection is not configured yet. Finish the Vercel setup in the project README.");
   }
-  return response.json();
+
+  const url = new URL(BACKEND_URL);
+  url.searchParams.set("path", path);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== "" && value !== null && value !== undefined) {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  const response = await fetch(url, { headers: { Accept: "application/json" } });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error("The server could not authenticate with TMDB. Check the server token.");
+    if (response.status === 429) throw new Error("Too many requests. Please wait a moment and try again.");
+    throw new Error(data.status_message || data.error || `Movie service error (${response.status}).`);
+  }
+  return data;
 }
 function renderMovies(items, append = false) {
   if (!append) grid.replaceChildren();
@@ -76,7 +83,10 @@ async function loadGenres() {
     const data = await tmdb("/genre/movie/list", {language:"en-US"});
     genres = data.genres || [];
     $("#genreFilter").innerHTML = `<option value="">All genres</option>` + genres.map(g => `<option value="${g.id}">${escapeHTML(g.name)}</option>`).join("");
-  } catch (error) { setMessage(error.message, "error"); }
+  } catch (error) {
+    setMessage(error.message, "error");
+    throw error;
+  }
 }
 function getFilters() {
   return {
@@ -125,7 +135,14 @@ async function showTrending() {
     renderMovies(applyFilters(currentResults));
     $("#resultsTitle").textContent = "Trending this week";
     $("#loadMore").hidden = true;
-  } catch (error) { setMessage(error.message, "error"); }
+    const status = $("#connectionStatus");
+    if (status) status.textContent = "Connected — the film archive is ready.";
+  } catch (error) {
+    setMessage(error.message, "error");
+    const status = $("#connectionStatus");
+    if (status) status.textContent = "Connection unavailable: " + error.message;
+    throw error;
+  }
 }
 function showDetails(movie) {
   const dialog = $("#movieDialog");
@@ -169,16 +186,17 @@ function renderFavorites() {
   });
 }
 
-$("#tokenForm").addEventListener("submit", async event => {
-  event.preventDefault();
-  accessToken = tokenInput.value.trim();
-  if (!accessToken) { setMessage("Please paste your TMDB Read Access Token.", "error"); return; }
-  localStorage.setItem(TOKEN_KEY, accessToken);
+async function connectArchive() {
+  const status = $("#connectionStatus");
   try {
     await loadGenres();
     await showTrending();
-  } catch (error) { setMessage(error.message, "error"); }
-});
+  } catch (error) {
+    if (status) status.textContent = "Connection unavailable: " + error.message;
+    setMessage(error.message, "error");
+  }
+}
+
 $("#searchForm").addEventListener("submit", event => {
   event.preventDefault();
   const query = $("#movieQuery").value.trim();
@@ -224,10 +242,7 @@ $("#dialogContent").addEventListener("click", event => {
   button.textContent = saved ? "SAVED TO YOUR COLLECTION ♥" : "ADD TO MY COLLECTION ♡";
 });
 $("#closeDialog").addEventListener("click", () => $("#movieDialog").close());
-$("#forgetToken").addEventListener("click", () => {
-  localStorage.removeItem(TOKEN_KEY); accessToken = ""; tokenInput.value = "";
-  setMessage("TMDB token cleared from this browser.");
-});
+
 function surpriseMe() {
   if (!currentResults.length) { setMessage("Connect to TMDB and load films first, then try Surprise Me.", "error"); return; }
   const movie = currentResults[Math.floor(Math.random() * currentResults.length)];
@@ -242,10 +257,7 @@ $("#movieGrid").addEventListener("dblclick", event => {
   if (movie) showDetails(movie);
 });
 renderFavorites();
-if (accessToken) {
-  tokenInput.value = accessToken;
-  loadGenres().then(showTrending);
-}
+connectArchive();
 window.addEventListener("load", () => {
   setTimeout(() => $("#curtain").classList.add("open"), 350);
   setTimeout(() => $("#curtain").remove(), 2100);

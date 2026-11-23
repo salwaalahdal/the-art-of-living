@@ -87,13 +87,15 @@
 
     <section class="token-section section" id="settings">
       <div class="token-card">
-        <div><p class="eyebrow">03 / CONNECTION SETTINGS</p><h2>Open the <em>archive.</em></h2><p>Paste your TMDB Read Access Token to connect the live movie database. It stays in this browser only.</p></div>
-        <form id="tokenForm" class="token-form">
-          <label for="apiToken">TMDB READ ACCESS TOKEN</label>
-          <input id="apiToken" type="password" placeholder="Paste your token here" autocomplete="off">
-          <div class="token-actions"><button type="submit">CONNECT TO TMDB ↗</button><button type="button" id="forgetToken">CLEAR TOKEN</button></div>
-          <small>Get your token from TMDB → Account Settings → API → API Read Access Token.</small>
-        </form>
+        <div>
+          <p class="eyebrow">03 / CONNECTION SETTINGS</p>
+          <h2>The archive is <em>connected.</em></h2>
+          <p>The film library connects securely to TMDB through the site's server. Visitors do not need to enter a token or create a TMDB account.</p>
+        </div>
+        <div class="token-form">
+          <p class="connection-status" id="connectionStatus">Connecting to the film archive…</p>
+          <small>Your TMDB credential is stored in the server environment, not in this page or the public repository.</small>
+        </div>
       </div>
       <p class="attribution" id="about">This product uses the TMDB API but is not endorsed or certified by TMDB. Movie data and images are provided by <a href="https://www.themoviedb.org/" target="_blank" rel="noopener">The Movie Database (TMDB)</a>.</p>
     </section>
