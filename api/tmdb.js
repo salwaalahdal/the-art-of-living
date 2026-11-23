@@ -8,17 +8,21 @@ const ALLOWED_PATHS = new Set([
 ]);
 
 module.exports = async function handler(req, res) {
-  const configuredOrigin = process.env.FRONTEND_ORIGIN;
+  // FRONTEND_ORIGIN accepts one origin or a comma-separated allowlist.
+  // Example: https://the-art-of-living-amber.vercel.app,https://salwaalahdal.github.io
+  const configuredOrigins = (process.env.FRONTEND_ORIGIN || "")
+    .split(",")
+    .map(origin => origin.trim())
+    .filter(Boolean);
   const requestOrigin = req.headers.origin;
+  const originAllowed = !requestOrigin || configuredOrigins.length === 0 || configuredOrigins.includes(requestOrigin);
 
-  if (configuredOrigin && requestOrigin && requestOrigin !== configuredOrigin) {
+  if (!originAllowed) {
     return res.status(403).json({ error: "Origin not allowed." });
   }
 
   res.setHeader("Vary", "Origin");
-  if (configuredOrigin) {
-    res.setHeader("Access-Control-Allow-Origin", configuredOrigin);
-  } else if (requestOrigin) {
+  if (requestOrigin && (configuredOrigins.length === 0 || configuredOrigins.includes(requestOrigin))) {
     res.setHeader("Access-Control-Allow-Origin", requestOrigin);
   }
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -56,3 +60,4 @@ module.exports = async function handler(req, res) {
     return res.status(502).json({ error: "Could not reach TMDB. Please try again." });
   }
 };
+
