@@ -1,7 +1,7 @@
 /* The Art of Living — Cinema Archive
    CCSW321: AJAX, DOM creation/removal, forms, events and error handling. */
-// After deploying the /api/tmdb function, paste its public URL here.
-const BACKEND_URL = "https://YOUR-VERCEL-PROJECT.vercel.app/api/tmdb";
+// Your deployed Vercel API endpoint.
+const BACKEND_URL = "https://the-art-of-living-amber.vercel.app/api/tmdb";
 const IMAGE_BASE = "https://image.tmdb.org/t/p/";
 const FAVORITES_KEY = "artOfLivingFavorites";
 let currentPage = 1;
@@ -262,3 +262,4 @@ window.addEventListener("load", () => {
   setTimeout(() => $("#curtain").classList.add("open"), 350);
   setTimeout(() => $("#curtain").remove(), 2100);
 });
+
