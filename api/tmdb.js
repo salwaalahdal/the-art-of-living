@@ -3,6 +3,7 @@
 const ALLOWED_PATHS = new Set([
   "/search/movie",
   "/movie/popular",
+  "/discover/movie",
   "/trending/movie/week",
   "/genre/movie/list"
 ]);
